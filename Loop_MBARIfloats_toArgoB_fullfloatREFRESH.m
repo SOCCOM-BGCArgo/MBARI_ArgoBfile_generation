@@ -80,7 +80,7 @@ for fl = 1:length(x) %there may be 2 lists (1 for SOCCOM, 1 for NON-SOCCOM).  3/
         end
 
         pause(60)
-        disp('NOW TRANSFERRING REFRESHED SOCCOM BR FILES TO GDACS FOR ALL FLOATS ON TODAYS LIST...')
+        disp('NOW TRANSFERRING REFRESHED MBARI-processed BR FILES TO GDACS FOR ALL FLOATS ON TODAYS LIST...')
         TRANSFER_BRzips_toGDAC('MBARIall',[])
         disp('MBARI BR-File REFRESH PROCESS COMPLETE.')       
 end
