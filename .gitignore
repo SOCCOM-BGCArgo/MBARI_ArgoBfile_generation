@@ -1,0 +1,5 @@
+# don't track Matlab .asv (autosave) files
+*.asv
+# other misc files to ignore
+TRANSFER_BRzips_toGDAC.m
+MBARI_GDAC_filesummary.m
