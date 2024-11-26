@@ -69,6 +69,38 @@ end
 
 end
 
+% set PROFILE_CHLA_FLUORESCENCE_QC ------
+
+if(exist('chlaFdatamode','var')==1)
+
+if(chlaFdatamode=='A'|chlaFdatamode=='D')
+  qcchlaF=chlaF_adj_qc;
+else
+  qcchlaF=chlaF_qc;
+end
+
+lennot9=length(find(qcchlaF~='9'));
+lengood=length(find(qcchlaF=='1'|qcchlaF=='2'|qcchlaF=='5'|qcchlaF=='8'));
+if(lennot9~=0)
+  if lengood/lennot9 == 1
+    profile_qcchlaF='A';
+  elseif lengood/lennot9 >= .75
+    profile_qcchlaF='B';
+  elseif lengood/lennot9 >= .50
+    profile_qcchlaF='C';
+  elseif lengood/lennot9 >= .25
+    profile_qcchlaF='D';
+  elseif lengood/lennot9 > .0
+    profile_qcchlaF='E';
+  else
+    profile_qcchlaF='F';
+  end
+
+  varid=netcdf.inqVarID(fid,'PROFILE_CHLA_FLUORESCENCE_QC');
+  netcdf.putVar(fid, varid, [0], [1], profile_qcchlaF);
+end
+
+end
 
 % set PROFILE_BBP700_QC ------
 
@@ -239,6 +271,51 @@ end
 
 end
 
+
+% ***   OCR   ***
+for ichs = 1:4
+    % keyboard
+if(exist('irrCHdatamode','var')==1)
+    if ~exist('ocrCH_qc','var') 
+        profile_qcocr{ichs}=' ';
+        varid=netcdf.inqVarID(fid,'PROFILE_DOWN_IRRADIANCE380_QC');
+        netcdf.putVar(fid, varid, [0], [1], profile_qcocr{ichs});
+    else
+
+        if(irrCHdatamode{ichs}=='A'|irrCHdatamode{ichs}=='D')
+            qcocr{ichs}=ocrCH_adj_qc{ichs};
+        else
+            qcocr{ichs}=ocrCH_qc{ichs};
+        end
+        lenzero=length(find(qcocr{ichs}=='0')); %ocr only...as we begin, no QC!  All qc set to '0'=no qc performed.
+        lennot9=length(find(qcocr{ichs}~='9'));
+        lengood=length(find(qcocr{ichs}=='1'|qcocr{ichs}=='2'|qcocr{ichs}=='5'|qcocr{ichs}=='8'));
+        if lenzero == length(qcocr{ichs})
+            profile_qcocr{ichs} = ' ';
+        else
+            if(lennot9~=0)
+                if lengood/lennot9 == 1
+                    profile_qcocr{ichs}='A';
+                elseif lengood/lennot9 >= .75
+                    profile_qcocr{ichs}='B';
+                elseif lengood/lennot9 >= .50
+                    profile_qcocr{ichs}='C';
+                elseif lengood/lennot9 >= .25
+                    profile_qcocr{ichs}='D';
+                elseif lengood/lennot9 > .0
+                    profile_qcocr{ichs}='E';
+                else
+                    profile_qcocr{ichs}='F';
+                end
+
+                varid=netcdf.inqVarID(fid,['PROFILE_',BPARAMS{ichs},'_QC']);
+                netcdf.putVar(fid, varid, [0], [1], profile_qcocr{ichs});
+            end
+        end
+        clear ocr_qc
+    end
+end
+end
 
 % close the BR-file ------
 

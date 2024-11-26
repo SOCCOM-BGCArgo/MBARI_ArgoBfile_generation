@@ -68,13 +68,14 @@ NOW = datevec(now);
 DMQCoperator.PRIMARY = 'PRIMARY | https://orcid.org/0000-0001-5766-1668 | Tanya Maurer, MBARI';
 %--------------------------------------------------------------------------
 % DEFINE DIRS STRUCTURE____________________________________________________
-user_dir = getenv('USERPROFILE'); %returns user path,i.e. 'C:\Users\tmaurer'
-user_dir = [user_dir, '\Documents\MATLAB\'];
-dirs.mat       = [user_dir,'ARGO_PROCESSING\DATA\FLOATS\'];
+% user_dir = getenv('USERPROFILE'); %returns user path,i.e. 'C:\Users\tmaurer'
+user_dir = getenv('USERPROFILE');
+dirs.mat       = ['\\atlas\Chem\ARGO_PROCESSING\DATA\FLOATS\']; % Changed to \\atlas\Chem for orko
 dirs.temp      = 'C:\temp_argob\';
-dirs.BRdir = [user_dir,'\ARGO_MBARI2AOML\BRFILES_TEMP\'];
-dirs.logs = [user_dir,'\ARGO_MBARI2AOML\LOG_FILES\'];
-dirs.refresh = [user_dir,'\ARGO_MBARI2AOML\REFRESH_FILES\'];
+dirs.BRdir = [user_dir,'\Documents\MATLAB\ARGO_MBARI2AOML\BRFILES_TEMP\'];
+dirs.logs = [user_dir,'\Documents\MATLAB\ARGO_MBARI2AOML\LOG_FILES\'];
+dirs.refresh = [user_dir,'\Documents\MATLAB\ARGO_MBARI2AOML\REFRESH_FILES\'];
+dirs.bat = [user_dir,'\Documents\MATLAB\batchfiles\'];
 
 %--------------------------------------------------------------------------
 % CREATE DIARY LOG FILE
@@ -92,7 +93,7 @@ diary on
 setpref('Internet','SMTP_Server','mbarimail.mbari.org'); % define server
 setpref('Internet','E_mail','tmaurer@mbari.org'); % define sender
 % email_list = {'jplant@mbari.org';'johnson@mbari.org';'tmaurer@mbari.org'};
-email_list = {'tmaurer@mbari.org'};
+email_list = {'tmaurer@mbari.org';'sbartoloni@mbari.org'};
 
 %--------------------------------------------------------------------------
 % DECIDE WHICH FTP SERVER TO USE
@@ -107,7 +108,7 @@ end
 %--------------------------------------------------------------------------
 % ORGANIZE FLOATS NUMBERS TO PROCESS
 % and get list indices
-load([user_dir,'\ARGO_MBARI2AOML\MBARI_float_list.mat']);
+load(['\\atlas\Chem\ARGO_PROCESSING\DATA\CAL\MBARI_float_list.mat']);
 iMSG =find(strcmp('msg dir', d.hdr)  == 1);
 iWMO = find(strcmp('WMO',d.hdr) == 1);
 iMB  = find(strcmp('MBARI ID',d.hdr) == 1);
@@ -172,6 +173,12 @@ for im = 1:length(WMO_ids)
         DMQCoperator.PRIMARY =  'PRIMARY | https://orcid.org/0000-0003-1967-7639 | Josh Plant, MBARI'; %add Josh as operator.
     end
     WMO = WMO_ids(im);
+	
+% 	if strcmp(num2str(WMO),'2903886')==1 
+% 		continue
+% 	end
+% 	
+	
     C = intersect(WMO,exclude_floats);
     if ~isempty(exclude_floats) && ~isempty(C)
         continue
@@ -182,7 +189,7 @@ for im = 1:length(WMO_ids)
             ', WMO # ',num2str(WMO),'.'])
         disp(['This is a ',char(fltTYPE{im}),' float of type "',char(Ftype),'".',char(10)])
         try
-            [REFRESHflag, errorwmo] = MBARImat_to_ARGOb(WMO,cycles_to_process,site_flag,Ftype,dirs,AorN,DMQCoperator);
+            [REFRESHflag, errorwmo] = MBARImat_to_ARGOb(WMO,MBARI_ids{im},cycles_to_process,site_flag,Ftype,dirs,AorN,DMQCoperator);
         catch mFAIL
             if im+1>length(WMO_ids) %if last float in list to process
                 merr = ['Processing for WMO FLOAT ',num2str(WMO),' incomplete.',...
@@ -200,7 +207,7 @@ for im = 1:length(WMO_ids)
                 proc_status(im)=0;
                 continue
             elseif weekday(now) >0 % == 1 && NOW(4)<12 %only email errors out on sunday morning (once per week).  Switched to sending all errors of this type regardless of runtime.
-                sendmail(email_list,'ERROR in MBARImat_to_ARGOb',merr) 
+                % sendmail(email_list,'ERROR in MBARImat_to_ARGOb',merr) 
                 proc_status(im) = 0;
                 continue
             else
@@ -231,6 +238,7 @@ ncinfo
 %     sendmail(email_list,'NEW ARGO-BR FILES GENERATED',ncinfo)
 % 	disp('mail sent')
 % end
+dirs.temp
 delete([dirs.temp,'*.nc']) % Clear temp dir
 
 %%%
@@ -255,7 +263,17 @@ else
         disp('NO FLOATS ARE READY FOR REFRESH ---> NO FLOAT REFRESH LIST WAS GENERATED.')
     end
 end
-      
+
+% ************************************************************************
+%  COPY FILES TO CHEM
+% ************************************************************************
+disp(' ');
+disp('COPYING FILES TO THE NETWORK........');
+str = [ dirs.bat,'copyMBARI2ARGObr.bat'];
+status = system(str); % Comment this line out if you don't want to copy to Chem!
+
+disp(str)
+
 toc
 
 diary off

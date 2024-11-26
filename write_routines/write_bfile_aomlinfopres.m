@@ -7,7 +7,6 @@
 %--------------------------------------------------------------
 
 % open new V3.1 BR-file skeleton
-
 newid=netcdf.open(filenameBR,'write');
 
 

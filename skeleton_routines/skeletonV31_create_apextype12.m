@@ -5,12 +5,13 @@
 %
 % 4 B-Argo parameters: DOXY, CHLA, BBP700, PH_IN_SITU_TOTAL
 %
-% 7 I-Argo parameters: TPHASE_DOXY, TEMP_DOXY, FLUORESCENCE_CHLA, BETA_BACKSCATTERING700, VRS_PH, PH_IN_SITU_FREE, IB_PH
+% 7 I-Argo parameters: TPHASE_DOXY, TEMP_DOXY, FLUORESCENCE_CHLA, BETA_BACKSCATTERING700, VRS_PH, PH_IN_SITU_FREE, IB_PH, IK_PH, VK_PH
 %
-% N_PARAM = 11 + 1 (PRES) = 12
+% N_PARAM = 13 + 1 (PRES) = 14
 %
 %
 % Tanya Maurer April 27, 2020
+% Tanya Maurer, September 2021 added VK_PH and IK_PH, N_PARAM = 13+1(PRES) = 14
 %--------------------------------------------------------------
 
 %filenameBR='Danniebgc.nc'
@@ -31,7 +32,7 @@ string32_dimid=netcdf.defDim(ncid,'STRING32',32);
 string64_dimid=netcdf.defDim(ncid,'STRING64',64);
 string256_dimid=netcdf.defDim(ncid,'STRING256',256);
 nprof_dimid=netcdf.defDim(ncid,'N_PROF',2);
-nparam_dimid=netcdf.defDim(ncid,'N_PARAM',12);
+nparam_dimid=netcdf.defDim(ncid,'N_PARAM',14);
 nlevels_dimid=netcdf.defDim(ncid,'N_LEVELS',nlevels);
 ncalib_dimid=netcdf.defDim(ncid,'N_CALIB',1);
 nhistory_dimid=netcdf.defDim(ncid,'N_HISTORY',netcdf.getConstant('NC_UNLIMITED'));
@@ -145,7 +146,7 @@ netcdf.putAtt(ncid,varid,'long_name','Julian day (UTC) of the station relative t
 netcdf.putAtt(ncid,varid,'standard_name','time');
 netcdf.putAtt(ncid,varid,'units','days since 1950-01-01 00:00:00 UTC');
 netcdf.putAtt(ncid,varid,'conventions','Relative julian days with decimal part (as parts of day)');
-netcdf.putAtt(ncid,varid,'resolution',1.e-08);
+netcdf.putAtt(ncid,varid,'resolution',1./(24*60*60)); %UPDATE TM, Jul2021: resolution changed from 1.e-08
 netcdf.putAtt(ncid,varid,'_FillValue',999999.);
 netcdf.putAtt(ncid,varid,'axis','T');
 
@@ -158,7 +159,7 @@ varid=netcdf.defVar(ncid,'JULD_LOCATION','NC_DOUBLE',[nprof_dimid]);
 netcdf.putAtt(ncid,varid,'long_name','Julian day (UTC) of the location relative to REFERENCE_DATE_TIME');
 netcdf.putAtt(ncid,varid,'units','days since 1950-01-01 00:00:00 UTC');
 netcdf.putAtt(ncid,varid,'conventions','Relative julian days with decimal part (as parts of day)');
-netcdf.putAtt(ncid,varid,'resolution',1.e-08);
+netcdf.putAtt(ncid,varid,'resolution',1./(24*60*60)); %UPDATE TM, Jul2021: resolution changed from 1.e-08
 netcdf.putAtt(ncid,varid,'_FillValue',999999.);
 
 varid=netcdf.defVar(ncid,'LATITUDE','NC_DOUBLE',[nprof_dimid]);
@@ -246,6 +247,16 @@ netcdf.putAtt(ncid,varid,'long_name','Global quality flag of IB_PH profile');
 netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2a');
 netcdf.putAtt(ncid,varid,'_FillValue',' ');
 
+varid=netcdf.defVar(ncid,'PROFILE_IK_PH_QC','NC_CHAR',[nprof_dimid]);
+netcdf.putAtt(ncid,varid,'long_name','Global quality flag of IK_PH profile');
+netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2a');
+netcdf.putAtt(ncid,varid,'_FillValue',' ');
+
+varid=netcdf.defVar(ncid,'PROFILE_VK_PH_QC','NC_CHAR',[nprof_dimid]);
+netcdf.putAtt(ncid,varid,'long_name','Global quality flag of VK_PH profile');
+netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2a');
+netcdf.putAtt(ncid,varid,'_FillValue',' ');
+
 varid=netcdf.defVar(ncid,'PROFILE_PH_IN_SITU_FREE_QC','NC_CHAR',[nprof_dimid]);
 netcdf.putAtt(ncid,varid,'long_name','Global quality flag of PH_IN_SITU_FREE profile');
 netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2a');
@@ -266,7 +277,7 @@ netcdf.putAtt(ncid,varid,'valid_min',single(0.));
 netcdf.putAtt(ncid,varid,'valid_max',single(12000.));
 netcdf.putAtt(ncid,varid,'resolution',single(0.1));
 netcdf.putAtt(ncid,varid,'C_format','%7.1f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F7.1f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F7.1');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 netcdf.putAtt(ncid,varid,'axis','Z');
 
@@ -278,7 +289,7 @@ netcdf.putAtt(ncid,varid,'valid_min',single(-2.));
 netcdf.putAtt(ncid,varid,'valid_max',single(40.));
 netcdf.putAtt(ncid,varid,'resolution',single(0.001));
 netcdf.putAtt(ncid,varid,'C_format','%9.3f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'TEMP_DOXY_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -293,7 +304,7 @@ netcdf.putAtt(ncid,varid,'valid_min',single(10.));
 netcdf.putAtt(ncid,varid,'valid_max',single(70.));
 netcdf.putAtt(ncid,varid,'resolution',single(0.001));
 netcdf.putAtt(ncid,varid,'C_format','%9.3f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'TPHASE_DOXY_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -309,7 +320,7 @@ netcdf.putAtt(ncid,varid,'valid_min',single(-5.));
 netcdf.putAtt(ncid,varid,'valid_max',single(600.));
 netcdf.putAtt(ncid,varid,'resolution',single(0.001));
 netcdf.putAtt(ncid,varid,'C_format','%9.3f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'DOXY_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -325,7 +336,7 @@ netcdf.putAtt(ncid,varid,'valid_min',single(-5.));
 netcdf.putAtt(ncid,varid,'valid_max',single(600.));
 netcdf.putAtt(ncid,varid,'resolution',single(0.001));
 netcdf.putAtt(ncid,varid,'C_format','%9.3f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'DOXY_ADJUSTED_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -338,7 +349,7 @@ netcdf.putAtt(ncid,varid,'long_name','Contains the error on the adjusted values 
 netcdf.putAtt(ncid,varid,'units','micromole/kg');
 netcdf.putAtt(ncid,varid,'resolution',single(0.001));
 netcdf.putAtt(ncid,varid,'C_format','%9.3f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F9.3');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 
@@ -347,7 +358,7 @@ netcdf.putAtt(ncid,varid,'long_name','Chlorophyll-A signal from fluorescence sen
 netcdf.putAtt(ncid,varid,'units','count');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0));
 netcdf.putAtt(ncid,varid,'C_format','%.0f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.0f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.0');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'FLUORESCENCE_CHLA_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -361,7 +372,7 @@ netcdf.putAtt(ncid,varid,'standard_name','mass_concentration_of_chlorophyll_a_in
 netcdf.putAtt(ncid,varid,'units','mg/m3');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'CHLA_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -375,7 +386,7 @@ netcdf.putAtt(ncid,varid,'standard_name','mass_concentration_of_chlorophyll_a_in
 netcdf.putAtt(ncid,varid,'units','mg/m3');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'CHLA_ADJUSTED_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -388,7 +399,7 @@ netcdf.putAtt(ncid,varid,'long_name','Contains the error on the adjusted values 
 netcdf.putAtt(ncid,varid,'units','mg/m3');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 
@@ -397,7 +408,7 @@ netcdf.putAtt(ncid,varid,'long_name','Total angle specific volume from backscatt
 netcdf.putAtt(ncid,varid,'units','count');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0));
 netcdf.putAtt(ncid,varid,'C_format','%.0f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.0f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.0');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'BETA_BACKSCATTERING700_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -410,7 +421,7 @@ netcdf.putAtt(ncid,varid,'long_name','Particle backscattering at 700 nanometers'
 netcdf.putAtt(ncid,varid,'units','m-1');
 netcdf.putAtt(ncid,varid,'resolution',single(0.00001));
 netcdf.putAtt(ncid,varid,'C_format','%.5f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'BBP700_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -423,7 +434,7 @@ netcdf.putAtt(ncid,varid,'long_name','Particle backscattering at 700 nanometers'
 netcdf.putAtt(ncid,varid,'units','m-1');
 netcdf.putAtt(ncid,varid,'resolution',single(0.00001));
 netcdf.putAtt(ncid,varid,'C_format','%.5f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'BBP700_ADJUSTED_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -436,7 +447,7 @@ netcdf.putAtt(ncid,varid,'long_name','Contains the error on the adjusted values 
 netcdf.putAtt(ncid,varid,'units','m-1');
 netcdf.putAtt(ncid,varid,'resolution',single(0.00001));
 netcdf.putAtt(ncid,varid,'C_format','%.5f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 
@@ -445,7 +456,7 @@ netcdf.putAtt(ncid,varid,'long_name','Voltage difference between reference and s
 netcdf.putAtt(ncid,varid,'units','volt');
 netcdf.putAtt(ncid,varid,'resolution',single(0.00001));
 netcdf.putAtt(ncid,varid,'C_format','%.5f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.5');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'VRS_PH_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -458,10 +469,36 @@ netcdf.putAtt(ncid,varid,'long_name','Base current of pH sensor');
 netcdf.putAtt(ncid,varid,'units','nanoampere');
 netcdf.putAtt(ncid,varid,'resolution',single(0.01));
 netcdf.putAtt(ncid,varid,'C_format','%.2f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.2f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.2');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'IB_PH_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
+netcdf.putAtt(ncid,varid,'long_name','quality flag');
+netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2');
+netcdf.putAtt(ncid,varid,'_FillValue',' ');
+
+varid=netcdf.defVar(ncid,'IK_PH','NC_FLOAT',[nlevels_dimid, nprof_dimid]);
+netcdf.putAtt(ncid,varid,'long_name','Counter electrode current of pH sensor');
+netcdf.putAtt(ncid,varid,'units','nanoampere');
+netcdf.putAtt(ncid,varid,'resolution',single(0.01));
+netcdf.putAtt(ncid,varid,'C_format','%.2f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.2');
+netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
+
+varid=netcdf.defVar(ncid,'IK_PH_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
+netcdf.putAtt(ncid,varid,'long_name','quality flag');
+netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2');
+netcdf.putAtt(ncid,varid,'_FillValue',' ');
+
+varid=netcdf.defVar(ncid,'VK_PH','NC_FLOAT',[nlevels_dimid, nprof_dimid]);
+netcdf.putAtt(ncid,varid,'long_name','Counter electrode voltage of pH sensor');
+netcdf.putAtt(ncid,varid,'units','volt');
+netcdf.putAtt(ncid,varid,'resolution',single(0.01));
+netcdf.putAtt(ncid,varid,'C_format','%.2f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.2');
+netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
+
+varid=netcdf.defVar(ncid,'VK_PH_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
 netcdf.putAtt(ncid,varid,'long_name','quality flag');
 netcdf.putAtt(ncid,varid,'conventions','Argo reference table 2');
 netcdf.putAtt(ncid,varid,'_FillValue',' ');
@@ -471,7 +508,7 @@ netcdf.putAtt(ncid,varid,'long_name','pH');
 netcdf.putAtt(ncid,varid,'units','dimensionless');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'PH_IN_SITU_FREE_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -485,7 +522,7 @@ netcdf.putAtt(ncid,varid,'standard_name','sea_water_ph_reported_on_total_scale')
 netcdf.putAtt(ncid,varid,'units','dimensionless');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'PH_IN_SITU_TOTAL_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -499,7 +536,7 @@ netcdf.putAtt(ncid,varid,'standard_name','sea_water_ph_reported_on_total_scale')
 netcdf.putAtt(ncid,varid,'units','dimensionless');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 varid=netcdf.defVar(ncid,'PH_IN_SITU_TOTAL_ADJUSTED_QC','NC_CHAR',[nlevels_dimid, nprof_dimid]);
@@ -512,7 +549,7 @@ netcdf.putAtt(ncid,varid,'long_name','Contains the error on the adjusted values 
 netcdf.putAtt(ncid,varid,'units','dimensionless');
 netcdf.putAtt(ncid,varid,'resolution',single(0.0001));
 netcdf.putAtt(ncid,varid,'C_format','%.4f');
-netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4f');
+netcdf.putAtt(ncid,varid,'FORTRAN_format','F.4');
 netcdf.putAtt(ncid,varid,'_FillValue',single(99999.));
 
 

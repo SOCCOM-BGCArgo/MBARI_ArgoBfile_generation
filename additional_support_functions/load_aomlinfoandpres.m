@@ -1,6 +1,8 @@
-function AOML = load_aomlinfoandpres(AOname)
+function AOML = load_aomlinfoandpres(AOname,Ftype,MB)
 % UPDATE: 8/3/2017: Added variables from D-files that Annie was previously
 % entering manually (see her email dated 7/25/2017)
+% UPDATE: 7/19/22: TM; enhancements for SOLO floats that account for
+% varying pressure axes (ie when pH sensor is turned off).
 
 fid=netcdf.open(AOname,'nowrite');
 
@@ -44,12 +46,19 @@ AOML.vss_core=netcdf.getVar(fid,varid);
 
 enough32=num2str(ones(32,1));
 
-snjunk=char(AOML.float_serial_no',enough32');
-AOML.sn32=snjunk(1:2,:);
-
-fwjunk=char(AOML.firmware_version',enough32');
-AOML.fw32=fwjunk(1:2,:);
-
+if ~isempty(strfind(Ftype{1},'solo'))
+    snjunk=char(AOML.float_serial_no',enough32');
+    AOML.sn32=snjunk(1:MB.INFO.pres_axes_ct,:);
+    
+    fwjunk=char(AOML.firmware_version',enough32');
+    AOML.fw32=fwjunk(1:MB.INFO.pres_axes_ct,:);
+else
+    snjunk=char(AOML.float_serial_no',enough32');
+    AOML.sn32=snjunk(1:2,:);
+    
+    fwjunk=char(AOML.firmware_version',enough32');
+    AOML.fw32=fwjunk(1:2,:);
+end
 
 % load aoml data ------
 

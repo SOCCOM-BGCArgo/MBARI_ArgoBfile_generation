@@ -5,12 +5,13 @@
 %
 % 3 B-Argo parameters: DOXY, PH_IN_SITU_TOTAL, NITRATE
 %
-% 7 I-Argo parameters: TEMP_DOXY, TPHASE_DOXY, VRS_PH, IB_PH, PH_IN_SITU_FREE, UV_INTENSITY_PARK_NITRATE, UV_INTENSITY_NITRATE (spectral)
+% 7 I-Argo parameters: TEMP_DOXY, TPHASE_DOXY, VRS_PH, IB_PH, IK_PH, VK_PH, PH_IN_SITU_FREE, UV_INTENSITY_PARK_NITRATE, UV_INTENSITY_NITRATE (spectral)
 %
-% N_PARAM = 10 + 1 (PRES) = 11
+% N_PARAM = 12 + 1 (PRES) = 13
 %
 %
 % Annie Wong, January 2018
+% Tanya Maurer, September 2021 added VK_PH and IK_PH, N_PARAM = 12+1(PRES) = 13
 %--------------------------------------------------------------
 
 
@@ -49,6 +50,12 @@ vrsph64=junkvrsph(1,:);
 junkibph=char('IB_PH',enough64');
 ibph64=junkibph(1,:);
 
+junkikph=char('IK_PH',enough64');
+ikph64=junkikph(1,:);
+
+junkvkph=char('VK_PH',enough64');
+vkph64=junkvkph(1,:);
+
 junkphfree=char('PH_IN_SITU_FREE',enough64');
 phfree64=junkphfree(1,:);
 
@@ -65,8 +72,8 @@ junknitrate=char('NITRATE',enough64');
 nitrate64=junknitrate(1,:);
 
 station_params=...
-[pres64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64;
-pres64, tempdoxy64, tphasedoxy64, doxy64, vrsph64, ibph64, phfree64, phtotal64, uvdarknitrate64, uvnitrate64, nitrate64];
+[pres64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64;
+pres64, tempdoxy64, tphasedoxy64, doxy64, vrsph64, ibph64, ikph64, vkph64, phfree64, phtotal64, uvdarknitrate64, uvnitrate64, nitrate64];
 
 varid=netcdf.inqVarID(fid,'STATION_PARAMETERS');
 netcdf.putVar(fid, varid, station_params');
@@ -74,7 +81,7 @@ netcdf.putVar(fid, varid, station_params');
 varid=netcdf.inqVarID(fid,'PARAMETER');
 netcdf.putVar(fid, varid, station_params');
 
-clear junk64 junkpres junktempdoxy junktphasedoxy junkdoxy junkvrsph junkibph junkphfree junkphtotal junkuvdarknitrate junkuvnitrate junknitrate
+clear junk64 junkpres junktempdoxy junktphasedoxy junkdoxy junkvrsph junkibph junkikph junkvkph junkphfree junkphtotal junkuvdarknitrate junkuvnitrate junknitrate
 
 
 % assign DATA_MODE and PARAMETER_DATA_MODE ------
@@ -100,8 +107,8 @@ if(max(datamode_check)==3)datamode_whole='D';end
 datamode=['R';datamode_whole];
 
 param_datamode=...
-['R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ';
-'R', 'R', 'R', doxydatamode, 'R', 'R', 'R', phdatamode, 'R', 'R', nidatamode];
+['R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ';
+'R', 'R', 'R', doxydatamode, 'R', 'R', 'R', 'R', 'R', phdatamode, 'R', 'R', nidatamode];
 
 
 % write bgc raw data and qc flags to nprof2 ------
@@ -168,6 +175,28 @@ ib_ph_qc=num2str(zeros(nlowres,1));
 ib_ph_qc(ii)='9';
 varid=netcdf.inqVarID(fid,'IB_PH_QC');
 netcdf.putVar(fid, varid, [0 1], [nlowres 1], ib_ph_qc);
+
+ik_ph=LR.IK_PH;
+ii=find(ik_ph>99998);
+ik_ph(ii)=fillfloat;
+varid=netcdf.inqVarID(fid,'IK_PH');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], ik_ph);
+
+ik_ph_qc=num2str(zeros(nlowres,1));
+ik_ph_qc(ii)='9';
+varid=netcdf.inqVarID(fid,'IK_PH_QC');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], ik_ph_qc);
+
+vk_ph=LR.VK_PH;
+ii=find(vk_ph>99998);
+vk_ph(ii)=fillfloat;
+varid=netcdf.inqVarID(fid,'VK_PH');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], vk_ph);
+
+vk_ph_qc=num2str(zeros(nlowres,1));
+vk_ph_qc(ii)='9';
+varid=netcdf.inqVarID(fid,'VK_PH_QC');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], vk_ph_qc);
 
 ph_in_situ_free=LR.PH_IN_SITU_FREE;
 ii=find(ph_in_situ_free>99998);
@@ -316,6 +345,9 @@ ii=find(nitrate_adj>99998);
 jj=find(LR.NITRATE_ADJUSTED_QC==99);
 if(length(jj)==nlowres & length(ii)==nlowres)
   disp(strcat('no NITRATE_ADJUSTED in cast :', num2str(INFO.cast)));
+  nitrate_adj_qc=num2str(ones(nlowres,1).*9);
+    varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_QC');
+  netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_qc);
 else
   LR.NITRATE_ADJUSTED_QC(ii)=9;
   nitrate_adj_qc=num2str(LR.NITRATE_ADJUSTED_QC);
@@ -338,6 +370,35 @@ else
   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_ERROR');
   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_error);
 end
+
+% jj=find(LR.NITRATE_ADJUSTED_QC==99);
+% if(length(jj)==nlowres & length(ii)==nlowres)
+%   disp(strcat('no NITRATE_ADJUSTED in cast :', num2str(INFO.cast)));
+%   nitrate_adj_qc=num2str(ones(nlowres,1).*9);
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_QC');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_qc);
+% else
+%   LR.NITRATE_ADJUSTED_QC(ii)=9;
+%   nitrate_adj_qc=num2str(LR.NITRATE_ADJUSTED_QC);
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_QC');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_qc);
+% 
+%   kk=find(nitrate_adj_qc=='4');
+%   nitrate_adj(ii)=fillfloat; % qc='9'
+%   if(nidatamode=='D')
+%     nitrate_adj(kk)=fillfloat; % qc='4'
+%   end
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj);
+% 
+%   nitrate_adj_error=LR.NITRATE_ADJUSTED_ERROR;
+%   nitrate_adj_error(ii)=fillfloat; % qc='9'
+%   if(nidatamode=='D')
+%     nitrate_adj_error(kk)=fillfloat; % qc='4'
+%   end
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_ERROR');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_error);
+% end
 
 
 % set SCIENTIFIC_CALIB entries ------
@@ -378,31 +439,31 @@ junk=char(INFO.NITRATE_SCI_CAL_COM,enough256');
 ni_comment256=junk(1,:);
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_COMMENT');
-for i=2:11
+for i=2:13
    netcdf.putVar(fid, varid, [0,i-1,0,1], [256,1,1,1], nocomment256);
 end
 netcdf.putVar(fid, varid, [0,4-1,0,1], [256,1,1,1], doxy_comment256); %doxy=4
-netcdf.putVar(fid, varid, [0,8-1,0,1], [256,1,1,1], ph_comment256); %ph=8
-netcdf.putVar(fid, varid, [0,11-1,0,1], [256,1,1,1], ni_comment256); %nitrate=11
+netcdf.putVar(fid, varid, [0,9-1,0,1], [256,1,1,1], ph_comment256); %ph=8
+netcdf.putVar(fid, varid, [0,13-1,0,1], [256,1,1,1], ni_comment256); %nitrate=11
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_EQUATION');
-for i=2:11
+for i=2:13
    netcdf.putVar(fid, varid, [0,i-1,0,1], [256,1,1,1], nocomment256);
 end
 netcdf.putVar(fid, varid, [0,4-1,0,1], [256,1,1,1], doxy_eqn256); %doxy=4
-netcdf.putVar(fid, varid, [0,8-1,0,1], [256,1,1,1], ph_eqn256); %ph=8
-netcdf.putVar(fid, varid, [0,11-1,0,1], [256,1,1,1], ni_eqn256); %nitrate=11
+netcdf.putVar(fid, varid, [0,10-1,0,1], [256,1,1,1], ph_eqn256); %ph=8
+netcdf.putVar(fid, varid, [0,13-1,0,1], [256,1,1,1], ni_eqn256); %nitrate=11
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_COEFFICIENT');
-for i=2:11
+for i=2:13
    netcdf.putVar(fid, varid, [0,i-1,0,1], [256,1,1,1], nocomment256);
 end
 netcdf.putVar(fid, varid, [0,4-1,0,1], [256,1,1,1], doxy_coeff256); %doxy=4
-netcdf.putVar(fid, varid, [0,8-1,0,1], [256,1,1,1], ph_coeff256); %ph=8
-netcdf.putVar(fid, varid, [0,11-1,0,1], [256,1,1,1], ni_coeff256); %nitrate=11
+netcdf.putVar(fid, varid, [0,10-1,0,1], [256,1,1,1], ph_coeff256); %ph=8
+netcdf.putVar(fid, varid, [0,13-1,0,1], [256,1,1,1], ni_coeff256); %nitrate=11
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_DATE');
-for i=2:11
+for i=2:13
    netcdf.putVar(fid, varid, [0,i-1,0,1], [14,1,1,1], writedate);
 end
 

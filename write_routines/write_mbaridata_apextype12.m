@@ -5,12 +5,13 @@
 %
 % 4 B-Argo parameters: DOXY, CHLA, BBP700, PH_IN_SITU_TOTAL
 %
-% 7 I-Argo parameters: TEMP_DOXY, TPHASE_DOXY, FLUORESCENCE_CHLA, BETA_BACKSCATTERING700, VRS_PH, IB_PH, PH_IN_SITU_FREE
+% 9 I-Argo parameters: TEMP_DOXY, TPHASE_DOXY, FLUORESCENCE_CHLA, BETA_BACKSCATTERING700, VRS_PH, IB_PH, IK_PH, VK_PH, PH_IN_SITU_FREE
 %
-% N_PARAM = 11 + 1 (PRES) = 12
+% N_PARAM = 13 + 1 (PRES) = 14
 %
 %
 % Tanya Maurer April 27,2020
+% Tanya Maurer, September 2021 added VK_PH and IK_PH, N_PARAM = 13+1(PRES) = 14
 %--------------------------------------------------------------
 
 
@@ -61,6 +62,12 @@ vrsph64=junkvrsph(1,:);
 junkibph=char('IB_PH',enough64');
 ibph64=junkibph(1,:);
 
+junkikph=char('IK_PH',enough64');
+ikph64=junkikph(1,:);
+
+junkvkph=char('VK_PH',enough64');
+vkph64=junkvkph(1,:);
+
 junkphfree=char('PH_IN_SITU_FREE',enough64');
 phfree64=junkphfree(1,:);
 
@@ -68,8 +75,8 @@ junkphtotal=char('PH_IN_SITU_TOTAL',enough64');
 phtotal64=junkphtotal(1,:);
 
 station_params=...
-[pres64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64;
-pres64, tempdoxy64, tphasedoxy64, doxy64, fluorescence64, chla64, backscattering64, bbp64, vrsph64, ibph64, phfree64, phtotal64];
+[pres64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64;
+pres64, tempdoxy64, tphasedoxy64, doxy64, fluorescence64, chla64, backscattering64, bbp64, vrsph64, ibph64, ikph64, vkph64, phfree64, phtotal64];
 
 varid=netcdf.inqVarID(fid,'STATION_PARAMETERS');
 netcdf.putVar(fid, varid, station_params');
@@ -77,7 +84,7 @@ netcdf.putVar(fid, varid, station_params');
 varid=netcdf.inqVarID(fid,'PARAMETER');
 netcdf.putVar(fid, varid, station_params');
 
-clear junk64 junkpres junktempdoxy junktphasedoxy junkdoxy junkfluorescence junkchla junkbackscattering junkbbp junkvrsph junkibph junkphfree junkphtotal
+clear junk64 junkpres junktempdoxy junktphasedoxy junkdoxy junkfluorescence junkchla junkbackscattering junkbbp junkvrsph junkibph junkikph junkvkph junkphfree junkphtotal
 
 
 % assign DATA_MODE and PARAMETER_DATA_MODE ------
@@ -107,8 +114,8 @@ if(max(datamode_check)==3)datamode_whole='D';end
 datamode=['R';datamode_whole];
 
 param_datamode=...
-['R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ';
-'R', 'R', 'R', doxydatamode, 'R', chladatamode, 'R', bbpdatamode, 'R', 'R', 'R', phdatamode];
+['R', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' ';
+'R', 'R', 'R', doxydatamode, 'R', chladatamode, 'R', bbpdatamode, 'R', 'R', 'R', 'R', 'R', phdatamode];
 
 
 % write bgc raw data and qc flags to nprof2 ------
@@ -232,6 +239,28 @@ ib_ph_qc(ii)='9';
 varid=netcdf.inqVarID(fid,'IB_PH_QC');
 netcdf.putVar(fid, varid, [0 1], [nlowres 1], ib_ph_qc);
 
+ik_ph=LR.IK_PH;
+ii=find(ik_ph>99998);
+ik_ph(ii)=fillfloat;
+varid=netcdf.inqVarID(fid,'IK_PH');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], ik_ph);
+
+ik_ph_qc=num2str(zeros(nlowres,1));
+ik_ph_qc(ii)='9';
+varid=netcdf.inqVarID(fid,'IK_PH_QC');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], ik_ph_qc);
+
+vk_ph=LR.VK_PH;
+ii=find(vk_ph>99998);
+vk_ph(ii)=fillfloat;
+varid=netcdf.inqVarID(fid,'VK_PH');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], vk_ph);
+
+vk_ph_qc=num2str(zeros(nlowres,1));
+vk_ph_qc(ii)='9';
+varid=netcdf.inqVarID(fid,'VK_PH_QC');
+netcdf.putVar(fid, varid, [0 1], [nlowres 1], vk_ph_qc);
+
 ph_in_situ_free=LR.PH_IN_SITU_FREE;
 ii=find(ph_in_situ_free>99998);
 ph_in_situ_free(ii)=fillfloat;
@@ -269,6 +298,9 @@ ii=find(doxy_adj>99998);
 jj=find(LR.DOXY_ADJUSTED_QC==99);
 if(length(jj)==nlowres & length(ii)==nlowres)
   disp(strcat('no DOXY_ADJUSTED in cast :', num2str(INFO.cast)));
+  doxy_adj_qc=num2str(ones(nlowres,1).*9);
+  varid=netcdf.inqVarID(fid,'DOXY_ADJUSTED_QC');
+  netcdf.putVar(fid, varid, [0 1], [nlowres 1], doxy_adj_qc);
 else
   LR.DOXY_ADJUSTED_QC(ii)=9;
   doxy_adj_qc=num2str(LR.DOXY_ADJUSTED_QC);
@@ -428,13 +460,13 @@ junk=char(INFO.PH_SCI_CAL_COM,enough256');
 ph_comment256=junk(1,:);
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_COMMENT');
-for i=2:12
+for i=2:14
    netcdf.putVar(fid, varid, [0,i-1,0,1], [256,1,1,1], nocomment256);
 end
 netcdf.putVar(fid, varid, [0,4-1,0,1], [256,1,1,1], doxy_comment256); %doxy=4
 netcdf.putVar(fid, varid, [0,6-1,0,1], [256,1,1,1], chla_comment256); %chla=6
 netcdf.putVar(fid, varid, [0,8-1,0,1], [256,1,1,1], bbp700_comment256); %bbp700=8
-netcdf.putVar(fid, varid, [0,12-1,0,1], [256,1,1,1], ph_comment256); %ph=12
+netcdf.putVar(fid, varid, [0,14-1,0,1], [256,1,1,1], ph_comment256); %ph=12
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_EQUATION');
 for i=2:12
@@ -443,19 +475,19 @@ end
 netcdf.putVar(fid, varid, [0,4-1,0,1], [256,1,1,1], doxy_eqn256); %doxy=4
 netcdf.putVar(fid, varid, [0,6-1,0,1], [256,1,1,1], chla_eqn256); %chla=6
 netcdf.putVar(fid, varid, [0,8-1,0,1], [256,1,1,1], bbp700_eqn256); %bbp700=8
-netcdf.putVar(fid, varid, [0,12-1,0,1], [256,1,1,1], ph_eqn256); %ph=12
+netcdf.putVar(fid, varid, [0,14-1,0,1], [256,1,1,1], ph_eqn256); %ph=12
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_COEFFICIENT');
-for i=2:12
+for i=2:14
    netcdf.putVar(fid, varid, [0,i-1,0,1], [256,1,1,1], nocomment256);
 end
 netcdf.putVar(fid, varid, [0,4-1,0,1], [256,1,1,1], doxy_coeff256); %doxy=4
 netcdf.putVar(fid, varid, [0,6-1,0,1], [256,1,1,1], chla_coeff256); %chla=6
 netcdf.putVar(fid, varid, [0,8-1,0,1], [256,1,1,1], bbp700_coeff256); %bbp700=8
-netcdf.putVar(fid, varid, [0,12-1,0,1], [256,1,1,1], ph_coeff256); %ph=12
+netcdf.putVar(fid, varid, [0,14-1,0,1], [256,1,1,1], ph_coeff256); %ph=12
 
 varid=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_DATE');
-for i=2:12
+for i=2:14
    netcdf.putVar(fid, varid, [0,i-1,0,1], [14,1,1,1], writedate);
 end
 

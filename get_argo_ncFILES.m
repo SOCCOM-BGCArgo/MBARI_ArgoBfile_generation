@@ -15,7 +15,7 @@ function TF = get_argo_ncFILES(WMO, cycles_to_process, site_flag, dirs, servertr
 % OUTPUTS:
 %   TF.status     - 1 = success, 0 = file was not copied
 %   TF.path       - path to file
-%   TF.ftptarget  - ftp site used to connect (ifremer, usgodae)
+%   TF.webtarget  - http site used to connect (ifremer, usgodae)
 %   TF.name       - file name
 %   TF.filestatus - message file status (success, copyfail, nofiles)
 %   TF.servertry  - Number of attempts to connect to server 
@@ -26,7 +26,14 @@ function TF = get_argo_ncFILES(WMO, cycles_to_process, site_flag, dirs, servertr
 %   TF.cycletime  - time of matfile creation for particular cycle
 %
 % UPDATES:  8/3/2017: Minor mod related to an update in MBARImat_to_ARGOb (see A.Wong email dated 7/25/2017)
-
+% AUTHOR: 
+%   Tanya Maurer
+%   MBARI
+%   tmaurer@mbari.org
+%
+% UPDATES:  
+%     8/3/2017: Minor mod related to an update in MBARImat_to_ARGOb (see A.Wong email dated 7/25/2017)
+% SB 8/16/2024: Transfered from ftp to http/websave connection
 % ************************************************************************
 % CHECK INPUTS AND BUILD FILE NAME
 if isnumeric(WMO)
@@ -45,7 +52,7 @@ TF.cycletime = '';
 if isempty(dirs)
     user_d = getenv('USERPROFILE'); %returns user path,i.e. 'C:\Users\jplant'
     user_d = [user_d, '\Documents\MATLAB\'];
-    dirs.mat       = [user_d,'ARGO_PROCESSING\DATA\FLOATS\'];
+    dirs.mat       = ['\\atlas\Chem\ARGO_PROCESSING\DATA\FLOATS\']; % Changed to \\atlas\chem for orko
     dirs.temp      = 'C:\temp_argob\';
 elseif ~isstruct(dirs)
     disp('Check "dirs" input. Must be an empty variable or a structure')
@@ -63,34 +70,35 @@ end
 % CHOOSE DATA SITE
 TF.site_flag = site_flag;
 if site_flag == 1 % United states
-    ftp_target = 'usgodae.org';
-    TF.ftptarget = 'usgodae.org';
-    ftp_dir  = '/pub/outgoing/argo/dac/aoml/';
+    webtarget = 'https://usgodae.org';
+    TF.webtarget = 'https://usgodae.org';
+    web_dir  = '/pub/outgoing/argo/dac/aoml/';
 elseif site_flag == 0 % France
-    ftp_target = 'ftp.ifremer.fr';
-    TF.ftptarget =  'ftp.ifremer.fr';
-    ftp_dir  = '/ifremer/argo/dac/aoml/';
+    webtarget = 'https://data-argo.ifremer.fr';
+    TF.webtarget =  'https://data-argo.ifremer.fr';
+    web_dir  = '/dac/aoml/';
 else
     disp('Unknown data site flag')
     return
 end
 
 % *************************************************************************
-% TRY CONNECTING TO FTP SERVER
+% TRY CONNECTING TO URL 
 count = 1;
 err_count = 1;
 disp('')
-disp(['Attempting to connect to ',ftp_target,'...',char(10),char(10)])
+disp(['Attempting to connect to ',webtarget,'...',char(10),char(10)])
 
 while count == err_count  
     try
-        f = ftp(ftp_target,'anonymous','tmaurer@mbari.org','LocalDataConnectionMethod','passive'); % Connect to FTP server
-        binary(f)
+        url  = [webtarget, web_dir];
+        options = weboptions('Timeout', 30); %increased to avoid timeout error
+        f = webread(url, options); % html code as string
     catch
         if err_count >= 5
-            ftperr = [' Connection to: ',ftp_target,' failed after 5 attempts.',char(10),...
+            httperr = [' Connection to: ',webtarget,' failed after 5 attempts.',char(10),...
             'No Argo Core files were obtained.'];
-            disp(ftperr)
+            disp(httperr)
             TF.status = 0;
             if servertry == 0
                 disp('Trying alternate GDAC...')
@@ -98,7 +106,7 @@ while count == err_count
             TF.servertry = servertry+1;
             return
         else
-            disp(['Could not connect to ftp server at: ',ftp_target])
+            disp(['Could not connect to web at: ',webtarget])
             disp('No files were obtained')
             disp('Trying again in 5 min')
             pause(3) %pause for 5 min then try again
@@ -126,16 +134,15 @@ end
 % % % metafiles = {metadir.name}';
 % % % fname = [WMO,'_meta.nc'];
 % % % str = mget(f, fname, dirs.temp);
-ftp_path = [ftp_dir, WMO, '/profiles/'];
-cd(f, ftp_path);       
-argo_dir   = dir(f);   % SOCCOM FLOAT DIR
-argo_files = {argo_dir.name}'; % Cell array of ARGO netcdf files
+
+web_path = [webtarget, web_dir, WMO, '/profiles/'];
+str = webread(web_path); % html code as big string
+patt = '(?<=")B*[RD]\d{7}\_\d{3}\.nc'; % pattern for cor and B files raw & delayed mode
+argo_files = regexp(str, patt, 'match')';
+
+    
 if strcmp(cycles_to_process,'new') == 1 %only new msg files are processed
-    %compare gdac files to mat dir 
-    ftp_path = [ftp_dir, WMO, '/profiles/'];
-    cd(f, ftp_path);       
-    argo_dir   = dir(f);   % SOCCOM FLOAT DIR
-    argo_files = {argo_dir.name}'; % Cell array of ARGO netcdf files
+
     % get array of cycle numbers for which BR files already exist
     BRcycles = str2num(cell2mat(regexp(argo_files,'(?<=^BR\w+)\d+(?=\.nc)','once','match'))); %lookahead, lookbehind.  Find numbers between "_" and ".nc", only in BR files.
     BDcycles = str2num(cell2mat(regexp(argo_files,'(?<=^BD\w+)\d+(?=\.nc)','once','match'))); %lookahead, lookbehind.  Find numbers between "_" and ".nc", only in BD files.
@@ -192,7 +199,7 @@ elseif isnumeric(cycles_to_process) == 1 %is array of cycle numbers to process
     mat2process = mat_files(IA);
 end
 
-disp(['Connection to ',ftp_target,' successful.'])
+disp(['Connection to ',webtarget,' successful.'])
 disp('MBARI mat files to process: ')
 disp(mat2process)
 disp('Searching for associated D or R .nc files on the GDAC...')
@@ -211,6 +218,7 @@ for i = 1:length(IA)
     TF.filestatus{i} = 'success';
     TF.status{i} = 1;
     t1    = strcmp(argo_files, argo_fname);
+    % keyboard
     if sum(t1) == 1 % D file exists
         TF.is_there_AOnameD{i} = 3; %this variable is referenced in MBARImat_to_ARGOb (in response to an update by Annie Wong, July 2017)
         fname = argo_files{t1}; %D file
@@ -231,16 +239,17 @@ for i = 1:length(IA)
             continue
         end
     end
-    
+
 % ************************************************************************
-% TRY AND FTP COPY
+% TRY AND websave
     try
-        str = mget(f, fname, dirs.temp);
-        str = cell2mat(str);
+        filepath = fullfile(dirs.temp, fname);
+        str = websave(filepath,[web_path,fname]);
+        %str = cell2mat(str);
         TF.path{i} = str;
         disp([fname, ' found on GDAC and copied to ',dirs.temp])
     catch
-        disp(['File found but ftp copy failed for ',WMO, ...
+        disp(['File found but websave copy failed for ',WMO, ...
             ' cycle # ', cycle]);
         TF.filestatus = 'copyfail';
         TF.path{i} = 'Copy to local failed.';
@@ -251,8 +260,6 @@ end
 
 TF.status = 1;
 TF.servertry = servertry+1;
-close(f);
-% delete(f);
 clearvars -except TF 
 disp('')
 

@@ -12,7 +12,7 @@
 % So N_PARAM for the netcdf files is max(N_PARAM1, N_PARAM2) = 11.
 %
 %
-% Annie Wong, January 2018
+% Annie Wong, January 2018, TM updated July 2024 to include CHLA_FLUORESCENCE
 %--------------------------------------------------------------
 
 %filenameBR='Danniebgc.nc';
@@ -56,6 +56,9 @@ fluorescencechla64=junkfluorescencechla(1,:);
 junkchla=char('CHLA',enough64');
 chla64=junkchla(1,:);
 
+junkchlaF=char('CHLA_FLUORESCENCE',enough64');
+chla64F=junkchlaF(1,:);
+
 junkbackscattering=char('BETA_BACKSCATTERING700',enough64');
 backscattering64=junkbackscattering(1,:);
 
@@ -78,8 +81,8 @@ junknitrate=char('NITRATE',enough64');
 nitrate64=junknitrate(1,:);
 
 station_params=...
-[pres64, tempdoxy64, phasedelaydoxy64, tempvoltagedoxy64, doxy64, fluorescencechla64, chla64, backscattering64, bbp64, fluorescencecdom64, cdom64;
-pres64, uvdarknitrate64, uvnitrate64, nitrate64, junk64, junk64, junk64, junk64, junk64, junk64, junk64];
+[pres64, tempdoxy64, phasedelaydoxy64, tempvoltagedoxy64, doxy64, fluorescencechla64, chla64, chla64F, backscattering64, bbp64, fluorescencecdom64, cdom64;
+pres64, uvdarknitrate64, uvnitrate64, nitrate64, junk64, junk64, junk64, junk64, junk64, junk64, junk64, junk64];
 
 varid=netcdf.inqVarID(fid,'STATION_PARAMETERS');
 netcdf.putVar(fid, varid, station_params');
@@ -101,6 +104,10 @@ if(doxydatamode=='D')datamode_check(1,1)=3;end
 chladatamode=INFO.CHLA_DATA_MODE;
 if(chladatamode=='A')datamode_check(1,2)=2;end
 if(chladatamode=='D')datamode_check(1,2)=3;end
+
+chlaFdatamode=INFO.CHLA_FLUORESCENCE_DATA_MODE;
+if(chlaFdatamode=='A')datamode_check(1,2)=2;end
+if(chlaFdatamode=='D')datamode_check(1,2)=3;end
 
 bbp700datamode=INFO.BBP700_DATA_MODE;
 if(bbp700datamode=='A')datamode_check(1,3)=2;end
@@ -124,8 +131,8 @@ if(max(datamode_check(2,:))==3)datamode_whole2='D';end
 datamode=[datamode_whole1;datamode_whole2];
 
 param_datamode=...
-['R', 'R', 'R', 'R', doxydatamode, 'R', chladatamode, 'R', bbp700datamode, 'R', cdomdatamode;
-'R', 'R', 'R', nidatamode, ' ', ' ', ' ', ' ', ' ', ' ', ' '];
+['R', 'R', 'R', 'R', doxydatamode, 'R', chladatamode, chlaFdatamode, 'R', bbp700datamode, 'R', cdomdatamode;
+'R', 'R', 'R', nidatamode, ' ', ' ', ' ', ' ', ' ', ' ', ' ', ' '];
 
 
 % assemble and write bgc raw data and qc flags ------
@@ -223,6 +230,23 @@ end
 varid=netcdf.inqVarID(fid,'CHLA_QC');
 netcdf.putVar(fid, varid, [0 0], [nlevels 1], chla_qc);
 
+chlaF=[HR.CHLA_FLUORESCENCE;LR.CHLA_FLUORESCENCE(deepindex)];
+ii=find(chlaF>99998);
+chlaF(ii)=fillfloat;
+varid=netcdf.inqVarID(fid,'CHLA_FLUORESCENCE');
+netcdf.putVar(fid, varid, [0 0], [nlevels 1], chlaF);
+
+nchlaF_qc=[HR.CHLA_FLUORESCENCE_QC;LR.CHLA_FLUORESCENCE_QC(deepindex)];
+jj=find(nchlaF_qc==99);
+if(length(jj)==nlevels & length(ii)==nlevels)
+  disp(strcat('no CHLA_FLUORESCENCE in cast :', num2str(INFO.cast)));
+  chlaF_qc=num2str(ones(nlevels,1).*9);
+else
+  nchlaF_qc(ii)=9;
+  chlaF_qc=num2str(nchlaF_qc);
+end
+varid=netcdf.inqVarID(fid,'CHLA_FLUORESCENCE_QC');
+netcdf.putVar(fid, varid, [0 0], [nlevels 1], chlaF_qc);
 
 beta_backscattering700=[HR.BETA_BACKSCATTERING700;LR.BETA_BACKSCATTERING700(deepindex)];
 ii=find(beta_backscattering700>99998);
@@ -402,6 +426,35 @@ else
   netcdf.putVar(fid, varid, [0 0], [nlevels 1], chla_adj_error);
 end
 
+chlaF_adj=[HR.CHLA_FLUORESCENCE_ADJUSTED;LR.CHLA_FLUORESCENCE_ADJUSTED(deepindex)];
+ii=find(chlaF_adj>99998);
+
+nchlaF_adj_qc=[HR.CHLA_FLUORESCENCE_ADJUSTED_QC;LR.CHLA_FLUORESCENCE_ADJUSTED_QC(deepindex)];
+jj=find(nchlaF_adj_qc==99);
+if(length(jj)==nlevels & length(ii)==nlevels)
+  disp(strcat('no CHLA_FLUORESCENCE_ADJUSTED in cast :', num2str(INFO.cast)));
+else
+  nchlaF_adj_qc(ii)=9;
+  chlaF_adj_qc=num2str(nchlaF_adj_qc);
+  varid=netcdf.inqVarID(fid,'CHLA_FLUORESCENCE_ADJUSTED_QC');
+  netcdf.putVar(fid, varid, [0 0], [nlevels 1], chlaF_adj_qc);
+
+  kk=find(chlaF_adj_qc=='4');
+  chlaF_adj(ii)=fillfloat; % qc='9'
+  if(chlaFdatamode=='D')
+    chlaF_adj(kk)=fillfloat; % qc='4'
+  end
+  varid=netcdf.inqVarID(fid,'CHLA_FLUORESCENCE_ADJUSTED');
+  netcdf.putVar(fid, varid, [0 0], [nlevels 1], chlaF_adj);
+
+  chlaF_adj_error=[HR.CHLA_FLUORESCENCE_ADJUSTED_ERROR;LR.CHLA_FLUORESCENCE_ADJUSTED_ERROR(deepindex)];
+  chlaF_adj_error(ii)=fillfloat; % qc='9'
+  if(chlaFdatamode=='D')
+    chlaF_adj_error(kk)=fillfloat; % qc='4'
+  end
+  varid=netcdf.inqVarID(fid,'CHLA_FLUORESCENCE_ADJUSTED_ERROR');
+  netcdf.putVar(fid, varid, [0 0], [nlevels 1], chlaF_adj_error);
+end
 
 bbp700_adj=[HR.BBP700_ADJUSTED;LR.BBP700_ADJUSTED(deepindex)];
 ii=find(bbp700_adj>99998);
@@ -524,6 +577,13 @@ chla_coeff256=junk(1,:);
 junk=char(INFO.CHLA_SCI_CAL_COM,enough256');
 chla_comment256=junk(1,:);
 
+junk=char(INFO.CHLA_FLUORESCENCE_SCI_CAL_EQU,enough256');
+chlaF_eqn256=junk(1,:);
+junk=char(INFO.CHLA_FLUORESCENCE_SCI_CAL_COEF,enough256');
+chlaF_coeff256=junk(1,:);
+junk=char(INFO.CHLA_SCI_CAL_COM,enough256');
+chlaF_comment256=junk(1,:);
+
 junk=char(INFO.BBP700_SCI_CAL_EQU,enough256');
 bbp700_eqn256=junk(1,:);
 junk=char(INFO.BBP700_SCI_CAL_COEF,enough256');
@@ -576,30 +636,35 @@ varid_date=netcdf.inqVarID(fid,'SCIENTIFIC_CALIB_DATE');
   netcdf.putVar(fid, varid_equ, [0,7-1,0,0], [256,1,1,1], chla_eqn256);
   netcdf.putVar(fid, varid_coef, [0,7-1,0,0], [256,1,1,1], chla_coeff256);
   netcdf.putVar(fid, varid_date, [0,7-1,0,0], [14,1,1,1], writedate);
+  
+  netcdf.putVar(fid, varid_com, [0,8-1,0,0], [256,1,1,1], chla_comment256); %chla_fluorescence = 8
+  netcdf.putVar(fid, varid_equ, [0,8-1,0,0], [256,1,1,1], chla_eqn256);
+  netcdf.putVar(fid, varid_coef, [0,8-1,0,0], [256,1,1,1], chla_coeff256);
+  netcdf.putVar(fid, varid_date, [0,8-1,0,0], [14,1,1,1], writedate);
 %end
 %if(bbp700datamode=='A'|bbp700datamode=='D')
-  for i=8
+  for i=9
    netcdf.putVar(fid, varid_com, [0,i-1,0,0], [256,1,1,1], nocomment256);
    netcdf.putVar(fid, varid_equ, [0,i-1,0,0], [256,1,1,1], nocomment256);
    netcdf.putVar(fid, varid_coef, [0,i-1,0,0], [256,1,1,1], nocomment256);
    netcdf.putVar(fid, varid_date, [0,i-1,0,0], [14,1,1,1], writedate);
   end
-  netcdf.putVar(fid, varid_com, [0,9-1,0,0], [256,1,1,1], bbp700_comment256); %bbp700=9
-  netcdf.putVar(fid, varid_equ, [0,9-1,0,0], [256,1,1,1], bbp700_eqn256);
-  netcdf.putVar(fid, varid_coef, [0,9-1,0,0], [256,1,1,1], bbp700_coeff256);
-  netcdf.putVar(fid, varid_date, [0,9-1,0,0], [14,1,1,1], writedate);
+  netcdf.putVar(fid, varid_com, [0,10-1,0,0], [256,1,1,1], bbp700_comment256); %bbp700=10
+  netcdf.putVar(fid, varid_equ, [0,10-1,0,0], [256,1,1,1], bbp700_eqn256);
+  netcdf.putVar(fid, varid_coef, [0,10-1,0,0], [256,1,1,1], bbp700_coeff256);
+  netcdf.putVar(fid, varid_date, [0,10-1,0,0], [14,1,1,1], writedate);
 %end
 %if(cdomdatamode=='A'|cdomdatamode=='D')
-  for i=10
+  for i=11
    netcdf.putVar(fid, varid_com, [0,i-1,0,0], [256,1,1,1], nocomment256);
    netcdf.putVar(fid, varid_equ, [0,i-1,0,0], [256,1,1,1], nocomment256);
    netcdf.putVar(fid, varid_coef, [0,i-1,0,0], [256,1,1,1], nocomment256);
    netcdf.putVar(fid, varid_date, [0,i-1,0,0], [14,1,1,1], writedate);
   end
-  netcdf.putVar(fid, varid_com, [0,11-1,0,0], [256,1,1,1], cdom_comment256); %cdom=11
-  netcdf.putVar(fid, varid_equ, [0,11-1,0,0], [256,1,1,1], cdom_eqn256);
-  netcdf.putVar(fid, varid_coef, [0,11-1,0,0], [256,1,1,1], cdom_coeff256);
-  netcdf.putVar(fid, varid_date, [0,11-1,0,0], [14,1,1,1], writedate);
+  netcdf.putVar(fid, varid_com, [0,12-1,0,0], [256,1,1,1], cdom_comment256); %cdom=12
+  netcdf.putVar(fid, varid_equ, [0,12-1,0,0], [256,1,1,1], cdom_eqn256);
+  netcdf.putVar(fid, varid_coef, [0,12-1,0,0], [256,1,1,1], cdom_coeff256);
+  netcdf.putVar(fid, varid_date, [0,12-1,0,0], [14,1,1,1], writedate);
 %end
 
 

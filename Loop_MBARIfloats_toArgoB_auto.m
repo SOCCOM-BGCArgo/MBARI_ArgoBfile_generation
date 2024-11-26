@@ -10,9 +10,9 @@
 % 03/08/2021 -- TM; removed separate calls to "Loop_SOCCOM_toArgoB" and
 % "NON_SOCCOM_toArgoB"; these two functions have been merged.
 %%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%%% 
-proc_status = Loop_MBARIfloats_toArgoB('all','new',[]) % 6/21/2017; exclude float 9659 per Annie (problem with DOXY bad values; auto-reject occurring at GDAC)
+proc_status = Loop_MBARIfloats_toArgoB('all','new',[6990585]) % 6/21/2017; exclude float 9659 per Annie (problem with DOXY bad values; auto-reject occurring at GDAC)
 pause(180) %pause for 3 minutes before running transfer code
-TRANSFER_BRzips_toGDAC('MBARIall',[])
+TRANSFER_BRzips_toGDAC('_auto',[])
 pause(300) %pause for 5 minutes before running NON-SOCCOM floats
 clear all
 close all

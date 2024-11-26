@@ -358,6 +358,9 @@ ii=find(nitrate_adj>99998);
 jj=find(LR.NITRATE_ADJUSTED_QC==99);
 if(length(jj)==nlowres & length(ii)==nlowres)
   disp(strcat('no NITRATE_ADJUSTED in cast :', num2str(INFO.cast)));
+  nitrate_adj_qc=num2str(ones(nlowres,1).*9);
+    varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_QC');
+  netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_qc);
 else
   LR.NITRATE_ADJUSTED_QC(ii)=9;
   nitrate_adj_qc=num2str(LR.NITRATE_ADJUSTED_QC);
@@ -380,6 +383,31 @@ else
   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_ERROR');
   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_error);
 end
+% jj=find(LR.NITRATE_ADJUSTED_QC==99);
+% if(length(jj)==nlowres & length(ii)==nlowres)
+%   disp(strcat('no NITRATE_ADJUSTED in cast :', num2str(INFO.cast)));
+% else
+%   LR.NITRATE_ADJUSTED_QC(ii)=9;
+%   nitrate_adj_qc=num2str(LR.NITRATE_ADJUSTED_QC);
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_QC');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_qc);
+% 
+%   kk=find(nitrate_adj_qc=='4');
+%   nitrate_adj(ii)=fillfloat; % qc='9'
+%   if(nidatamode=='D')
+%     nitrate_adj(kk)=fillfloat; % qc='4'
+%   end
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj);
+% 
+%   nitrate_adj_error=LR.NITRATE_ADJUSTED_ERROR;
+%   nitrate_adj_error(ii)=fillfloat; % qc='9'
+%   if(nidatamode=='D')
+%     nitrate_adj_error(kk)=fillfloat; % qc='4'
+%   end
+%   varid=netcdf.inqVarID(fid,'NITRATE_ADJUSTED_ERROR');
+%   netcdf.putVar(fid, varid, [0 1], [nlowres 1], nitrate_adj_error);
+% end
 
 
 % set SCIENTIFIC_CALIB entries ------
